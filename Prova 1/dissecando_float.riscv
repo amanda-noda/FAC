@@ -1,0 +1,108 @@
+.data
+	zeroAsFloat: .float 0.0
+	symbol: .asciiz "0x"
+	endLine: .asciiz "\n"
+	positive: .asciiz "+\n"
+	negative: .asciiz "-\n"
+	hexresult:  .space  8
+	
+.text
+main:
+   	li $v0, 6
+	syscall
+	mfc1 $t8 $f0 #store in $t8
+	#extract bit 31
+	ori  $t0 $zero 0x1
+	sll  $t0 $t0 31 
+	and  $a0 $t0 $t8
+	srl  $a0 $a0 31
+ 	add  $t1, $zero, $a0
+	beq  $a0, 0, printPositive
+    	bne  $a0, 0, printNegative
+    	
+main2:
+    	#extract bits 23-30
+    	ori  $t0 $zero 0xFF
+    	sll  $t0 $t0 23
+    	and  $a0 $t0 $t8
+    	srl  $a0 $a0 23
+    	addi  $t3, $zero, 127
+    	sub $a0, $a0, $t3
+    
+    	#print exponent
+    	addi $v0 $zero 1
+    	syscall
+
+    	li $v0, 4 
+    	la $a0, endLine
+    	syscall
+
+   	
+    	li $v0, 4
+    	la $a0, symbol
+    	syscall
+
+   
+    	#extract bits 0-22
+    
+    	ori  $t0 $zero 0xFFFF
+    	sll  $t0 $t0 7
+    	ori  $t0 $t0 0x7F
+    	and  $a0 $t0 $t8
+    	jal hex
+   	
+    	li $v0, 4 
+    	la $a0, endLine
+    	syscall
+ 
+    	li $v0, 10
+    	syscall
+
+printPositive:
+    	add $t4, $zero, $a0
+    	li $v0, 4 
+    	la $a0, positive
+    	syscall
+    	beqz $ra, main2 # when $ra is zero end program else continue
+	li $v0, 10
+    	syscall
+    	
+printNegative:
+    	add $t4, $zero, $a0
+    	li $v0, 4 
+    	la $a0, negative
+    	syscall
+    	beqz $ra, main2 # when $ra is zero end program else continue
+	li $v0, 10
+    	syscall
+    	
+hex:    
+    	sub $sp, $sp, 24            # Push register onto stack
+    	sw $a0, 0($sp)
+    	sw $s0, 4($sp)
+    	sw $s1, 8($sp)
+    	sw $s2, 12($sp)
+    	sw $s3, 16($sp)
+    	sw $s4, 20($sp)
+    	move $s2, $a0               # Move a0 to s2
+    	li $s0, 8                   # 8 digits for hex word
+    	la $s3, hexresult           # Hex string set up here
+
+hexloop:
+    	rol $s2, $s2, 4             # Start with leftmost digit
+    	and $s1, $s2, 0xf           # Mask 15 digits in s2 and place results in s1
+    	ble $s1, 9, hexprint        # If s1 <= 9, go to print
+    	add $s1, $s1, 7             # Else s1 = s1 + 7 (to get A-F)
+
+hexprint:
+    	add $s1, $s1, 48            # Add 48 (30 hex) to get ascii code
+    	sb $s1,($s3)                # Store byte in result. s3 -> result
+    	add $s3, $s3, 1             # s3 = s3 + 1
+    	add $s0, $s0, -1            # s0 = s0 - 1
+    	bnez $s0, hexloop           # If s0 != 0, go to hexloop
+    
+    	la $a0, hexresult           # display result
+    	li $v0, 4
+    	syscall
+
+    	jr $ra                      # Return

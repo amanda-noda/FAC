@@ -1,0 +1,55 @@
+.data
+	newLine: .asciiz "\n"
+	gabarito: .space 1001
+	respostas: .space 1001
+
+.text
+main:
+	li $v0, 5			# N == qnt questoes
+	syscall				# executa a funcao
+	add $s0, $v0, $0		# s0 = N
+
+	# recebe o gabarito	
+	li $v0, 8			# le string
+	la $a0, gabarito		# define vetor gabarito
+	addi $a1, $0, 1000		# max 1000
+	syscall			        
+
+	# recebe as repostas 
+	li $v0, 8			# le string 
+	la $a0, respostas		# # define vetor resposta
+	addi $a1, $0, 1000		# max 1000
+	syscall			        
+
+	la $s1, gabarito		# s1 eh o endereco do vetor gabarito
+	la $s2, respostas		# s2 eh o endereco do vetor resposta
+
+	add $s3, $0, $0			# s3 = 0
+	add $t4, $s0, $0		# t4 = N
+
+compara:
+	lb $t2,($s1)			# pega o proximo caractere do vetor gabarito
+	lb $t3,($s2)			# pega o proximo caractere do vetor resposta
+	
+	seq $t0, $t2, $t3		# se forem iguais, t0=1, senão , t0=0
+	
+	add $s3, $s3, $t0		# s3 = s3+t0
+	
+	addi $s1,$s1,1			# aponta para o proximo caracter do vetor gabarito
+	addi $s2,$s2,1             	# aponta para o proximo caracter do vetor resposta
+	
+	addi $t4, $t4, -1		# t4--
+	bne $t4, $0, compara		# volta pro loop se ainda tiver resposta pra comparar
+	
+	# print resposta
+	li $v0, 1			
+	add $a0, $s3, $0		# a0 = qnt de acertos
+	syscall					
+	
+	# \n
+	li $v0, 4                     
+	la $a0, newLine		 	     
+	syscall                       
+	
+	li $v0, 10			# exit
+	syscall
